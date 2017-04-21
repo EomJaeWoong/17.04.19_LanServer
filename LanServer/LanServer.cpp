@@ -7,10 +7,11 @@
 #pragma comment (lib, "Winmm.lib")
 #pragma comment (lib, "Ws2_32.lib")
 
-#include "lib\library.h"
+#include "lib\Library.h"
+#include "MemoryPool.h"
+#include "NPacket.h"
 #include "Config.h"
 #include "StreamQueue.h"
-#include "NPacket.h"
 #include "LanServer.h"
 
 CLanServer::CLanServer()
@@ -175,8 +176,6 @@ void CLanServer::RecvPost(SESSION *pSession)
 	wBuf.buf = pSession->RecvQ.GetWriteBufferPtr();
 	wBuf.len = pSession->RecvQ.GetNotBrokenPutSize();
 
-	memset(&(pSession->_RecvOverlapped), 0, sizeof(OVERLAPPED));
-
 	InterlockedIncrement64((LONG64 *)&(pSession->_lIOCount));
 	retval = WSARecv(pSession->_SessionInfo._socket, &wBuf, 1, &dwRecvSize, &dwflag, &pSession->_RecvOverlapped, NULL);
 
@@ -185,7 +184,9 @@ void CLanServer::RecvPost(SESSION *pSession)
 		int iErrorCode = GetLastError();
 		if (iErrorCode != WSA_IO_PENDING)
 		{
-			OnError(iErrorCode, L"RecvPost Error\n");
+			if (iErrorCode != 10054)
+				OnError(iErrorCode, L"RecvPost Error\n");
+			
 			if (0 == InterlockedDecrement64((LONG64 *)&(pSession->_lIOCount)))
 				ReleaseSession(pSession);
 
@@ -228,7 +229,9 @@ BOOL CLanServer::SendPost(SESSION *pSession)
 			int iErrorCode = GetLastError();
 			if (iErrorCode != WSA_IO_PENDING)
 			{
-				OnError(iErrorCode, L"SendPost Error\n");
+				if (iErrorCode != 10054)
+					OnError(iErrorCode, L"SendPost Error\n");
+
 				if (0 == InterlockedDecrement64((LONG64 *)&pSession->_lIOCount))
 					ReleaseSession(pSession);
 
@@ -307,6 +310,7 @@ int CLanServer::WorkerThread_Update()
 		{
 			if (pOverlapped == &(pSession->_RecvOverlapped))
 			{
+				int i = 0;
 			}
 
 			else if (pOverlapped == &(pSession->_SendOverlapped))
@@ -396,8 +400,10 @@ int CLanServer::AcceptThread_Update()
 		}
 		InetNtop(AF_INET, &clientSock.sin_addr, clientIP, 16);
 
+		/*
 		if (_iSessionCount >= MAX_SESSION)
 			OnError(dfMAX_SESSION, L"Session is Maximun!");
+			*/
 
 		if (!OnConnectionRequest(clientIP, ntohs(clientSock.sin_port)))		// accept 流饶
 		{
@@ -415,6 +421,8 @@ int CLanServer::AcceptThread_Update()
 			// 后 技记
 			if (!Session[iCnt]._bUsed)
 			{
+				Session[iCnt]._bUsed = true;
+
 				/////////////////////////////////////////////////////////////////////
 				// 技记 檬扁拳
 				/////////////////////////////////////////////////////////////////////
@@ -455,8 +463,6 @@ int CLanServer::AcceptThread_Update()
 
 				if (!retval)
 					continue;
-				
-				Session[iCnt]._bUsed = true;
 				
 				OnClientJoin(&Session[iCnt]._SessionInfo, Session[iCnt]._iSessionID);
 				RecvPost(&Session[iCnt]);
@@ -539,10 +545,6 @@ void CLanServer::DisconnectSession(__int64 iSessionID)
 void CLanServer::ReleaseSession(SESSION *pSession)
 {
 	DisconnectSession(pSession);
-
-	if (pSession->RecvQ.GetUseSize() != 0 ||
-		pSession->SendQ.GetUseSize() != 0)
-		return;
 
 	pSession->_bUsed = false;
 	InterlockedDecrement64((LONG64 *)&_iSessionCount);

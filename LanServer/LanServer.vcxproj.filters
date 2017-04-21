@@ -21,9 +21,6 @@
     <ClInclude Include="StreamQueue.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="NPacket.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="LanServerTest.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -42,15 +39,18 @@
     <ClInclude Include="lib\SystemLog.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="MemoryPool.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="NPacket.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LanServer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="StreamQueue.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="NPacket.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="LanServerTest.cpp">
@@ -62,10 +62,10 @@
     <ClCompile Include="lib\APIHook.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="lib\Library.cpp">
+    <ClCompile Include="lib\SystemLog.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="lib\SystemLog.cpp">
+    <ClCompile Include="NPacket.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

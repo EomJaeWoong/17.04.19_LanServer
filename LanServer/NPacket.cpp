@@ -1,5 +1,10 @@
-#include <windows.h>
+#include <Windows.h>
+
+#include "lib\Library.h"
+#include "MemoryPool.h"
 #include "NPacket.h"
+
+CMemoryPool<CNPacket> CNPacket::_pPacketPool(0);
 
 //////////////////////////////////////////////////////////////////////////
 // 생성자, 파괴자.
@@ -356,7 +361,7 @@ int		CNPacket::PutData(unsigned char *bypSrc, int iSrcSize)
 //////////////////////////////////////////////////////////////////////////
 CNPacket *CNPacket::Alloc()
 {
-	CNPacket *pPacket = new CNPacket();
+	CNPacket *pPacket = _pPacketPool.Alloc();
 	pPacket->addRef();
 
 	pPacket->Clear();
@@ -373,6 +378,13 @@ CNPacket *CNPacket::Alloc()
 //////////////////////////////////////////////////////////////////////////
 void CNPacket::Free()
 {
-	if (0 == InterlockedDecrement64((LONG64 *)&_iRefCnt))
-		delete this;
+	int retval = InterlockedDecrement64((LONG64 *)&_iRefCnt);
+	if (0 == retval)
+	{
+		this->~CNPacket();
+		_pPacketPool.Free(this);
+	}
+
+	if (retval < 0)
+		CCrashDump::Crash();
 }

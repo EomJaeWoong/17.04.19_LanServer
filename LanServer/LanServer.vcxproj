@@ -151,6 +151,7 @@
     <ClInclude Include="lib\CrashDump.h" />
     <ClInclude Include="lib\Library.h" />
     <ClInclude Include="lib\SystemLog.h" />
+    <ClInclude Include="MemoryPool.h" />
     <ClInclude Include="NPacket.h" />
     <ClInclude Include="StreamQueue.h" />
   </ItemGroup>
@@ -158,7 +159,6 @@
     <ClCompile Include="LanServer.cpp" />
     <ClCompile Include="LanServerTest.cpp" />
     <ClCompile Include="lib\APIHook.cpp" />
-    <ClCompile Include="lib\Library.cpp" />
     <ClCompile Include="lib\SystemLog.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NPacket.cpp" />

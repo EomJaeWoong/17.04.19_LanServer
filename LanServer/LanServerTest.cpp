@@ -1,6 +1,7 @@
 #include <WinSock2.h>
 #include <stdio.h>
 
+#include "MemoryPool.h"
 #include "NPacket.h"
 #include "StreamQueue.h"
 #include "Config.h"

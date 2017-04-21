@@ -4,7 +4,6 @@
 
 #include "Config.h"
 #include "StreamQueue.h"
-#include "NPacket.h"
 #include "LanServer.h"
 #include "LanServerTest.h"
 

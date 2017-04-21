@@ -98,9 +98,9 @@ int	CAyaStreamSQ::GetNotBrokenGetSize(void)
 int	CAyaStreamSQ::GetNotBrokenPutSize(void)
 {
 	if (m_iWritePos < m_iReadPos)
-		return GetBufferSize() - m_iWritePos;
+		return m_iReadPos - m_iWritePos;
 	else
-		return GetFreeSize();
+		return GetBufferSize() - m_iWritePos;
 }
 
 /////////////////////////////////////////////////////////////////////////
