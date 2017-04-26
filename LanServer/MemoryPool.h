@@ -67,7 +67,13 @@
 			////////////////////////////////////////////////////////////////
 			m_iBlockCount = iBlockNum;
 
-			if (iBlockNum <= 0)	return;
+			if (iBlockNum < 0)	return;
+
+			else if (iBlockNum == 0)
+			{
+				m_bStoreFlag = true;
+				m_stBlockHeader = NULL;
+			}
 
 			////////////////////////////////////////////////////////////////
 			// DATA * 개수 크기만 큼 메모리 할당
@@ -93,7 +99,7 @@
 
 		virtual	~CMemoryPool()
 		{
-			delete m_stBlockHeader;
+			delete []m_stBlockHeader;
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -106,10 +112,21 @@
 		{
 			st_BLOCK_NODE *stpBlock;
 
-			if (m_iBlockCount <= m_iAllocCount)		return NULL;
+			if (m_iBlockCount < m_iAllocCount)		return NULL;
 
-			stpBlock = m_stpTop;
-			m_stpTop = stpBlock->stpNextBlock;
+			else if (m_bStoreFlag && (m_iBlockCount == m_iAllocCount))
+			{
+				stpBlock = (st_BLOCK_NODE *)new char[(sizeof(st_BLOCK_NODE) + sizeof(DATA))];
+				m_iBlockCount++;
+			}
+
+			else
+			{
+				stpBlock = m_stpTop;
+				m_stpTop = stpBlock->stpNextBlock;
+			}
+
+			m_iAllocCount++;
 
 			return (DATA *)stpBlock + 1;
 		}
@@ -155,6 +172,11 @@
 		// 메모리 Lock 플래그
 		//////////////////////////////////////////////////////////////////////////
 		bool m_bLockFlag;
+
+		//////////////////////////////////////////////////////////////////////////
+		// 메모리 동적 플래그, true면 없으면 동적할당 함
+		//////////////////////////////////////////////////////////////////////////
+		bool m_bStoreFlag;
 
 		//////////////////////////////////////////////////////////////////////////
 		// 현재 사용중인 블럭 개수

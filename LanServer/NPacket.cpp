@@ -362,8 +362,10 @@ int		CNPacket::PutData(unsigned char *bypSrc, int iSrcSize)
 CNPacket *CNPacket::Alloc()
 {
 	CNPacket *pPacket = _pPacketPool.Alloc();
-	pPacket->addRef();
 
+	new (pPacket)CNPacket;
+
+	pPacket->addRef();
 	pPacket->Clear();
 
 	return pPacket;

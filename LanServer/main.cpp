@@ -3,6 +3,8 @@
 #include <conio.h>
 
 #include "Config.h"
+#include "MemoryPool.h"
+#include "NPacket.h"
 #include "StreamQueue.h"
 #include "LanServer.h"
 #include "LanServerTest.h"

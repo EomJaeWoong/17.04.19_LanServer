@@ -148,7 +148,7 @@ namespace Eom{
 		static long _DumpCount;
 	};
 
-	long CCrashDump::_DumpCount = 0;
+	//long CCrashDump::_DumpCount = 0;
 }
 
 #endif
