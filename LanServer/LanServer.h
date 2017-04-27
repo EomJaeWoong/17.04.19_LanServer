@@ -94,7 +94,7 @@ private :
 	int AcceptThread_Update();
 	int MonitorThread_Update();
 
-	void RecvPost(SESSION *pSession);
+	void RecvPost(SESSION *pSession, bool bAcceptRecv = false);
 	BOOL SendPost(SESSION *pSession);
 
 	bool CompleteRecv(SESSION *pSession, CNPacket *pPacket);

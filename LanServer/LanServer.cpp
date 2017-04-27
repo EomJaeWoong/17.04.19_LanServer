@@ -159,7 +159,9 @@ bool CLanServer::SendPacket(__int64 iSessionID, CNPacket *pPacket)
 		}
 	}
 	
+	PRO_BEGIN(L"SendPost");
 	SendPost(&Session[iCnt]);
+	PRO_END(L"SendPost");
 
 	return true;
 }
@@ -167,7 +169,7 @@ bool CLanServer::SendPacket(__int64 iSessionID, CNPacket *pPacket)
 //-------------------------------------------------------------------------------------
 // Recv 등록
 //-------------------------------------------------------------------------------------
-void CLanServer::RecvPost(SESSION *pSession)
+void CLanServer::RecvPost(SESSION *pSession, bool bAcceptRecv)
 {
 	int retval;
 	DWORD dwRecvSize, dwflag = 0;
@@ -176,7 +178,9 @@ void CLanServer::RecvPost(SESSION *pSession)
 	wBuf.buf = pSession->RecvQ.GetWriteBufferPtr();
 	wBuf.len = pSession->RecvQ.GetNotBrokenPutSize();
 
-	InterlockedIncrement64((LONG64 *)&(pSession->_lIOCount));
+	if (!bAcceptRecv)
+		InterlockedIncrement64((LONG64 *)&(pSession->_lIOCount));
+
 	retval = WSARecv(pSession->_SessionInfo._socket, &wBuf, 1, &dwRecvSize, &dwflag, &pSession->_RecvOverlapped, NULL);
 
 	if (retval == SOCKET_ERROR)
@@ -223,7 +227,11 @@ BOOL CLanServer::SendPost(SESSION *pSession)
 	else{
 		InterlockedIncrement64((LONG64 *)&pSession->_lIOCount);
 		pSession->_bSendFlag = TRUE;
+
+		PRO_BEGIN(L"WSASend Call");
 		retval = WSASend(pSession->_SessionInfo._socket, wBuf, iCount, &dwSendSize, dwflag, &pSession->_SendOverlapped, NULL);
+		PRO_END(L"WSASend Call");
+
 		if (retval == SOCKET_ERROR)
 		{
 			int iErrorCode = GetLastError();
@@ -279,8 +287,10 @@ int CLanServer::WorkerThread_Update()
 		OVERLAPPED *pOverlapped = NULL;
 		SESSION *pSession = NULL;
 
+		PRO_BEGIN(L"GQCS IOComplete");
 		retval = GetQueuedCompletionStatus(hIOCP, &dwTransferred, (PULONG_PTR)&pSession,
 			(LPOVERLAPPED *)&pOverlapped, INFINITE);
+		PRO_END(L"GQCS IOComplete");
 
 		//----------------------------------------------------------------------------
 		// Error, 종료 처리
@@ -331,7 +341,10 @@ int CLanServer::WorkerThread_Update()
 		if (pOverlapped == &pSession->_RecvOverlapped)
 		{    
 			pSession->RecvQ.MoveWritePos(dwTransferred);
+
+			PRO_BEGIN(L"PacketAlloc");
 			pPacket = CNPacket::Alloc();
+			PRO_END(L"PacketAlloc");
 
 			while (1)
 			{
@@ -342,7 +355,9 @@ int CLanServer::WorkerThread_Update()
 				OnRecv(pSession->_iSessionID, pPacket);
 			}
 
+			PRO_BEGIN(L"PacketFree");
 			pPacket->Free();
+			PRO_END(L"PacketFree");
 			
 			RecvPost(pSession);
 		}
@@ -464,8 +479,12 @@ int CLanServer::AcceptThread_Update()
 				if (!retval)
 					continue;
 				
+				InterlockedIncrement64((LONG64 *)&Session[iCnt]._lIOCount);
 				OnClientJoin(&Session[iCnt]._SessionInfo, Session[iCnt]._iSessionID);
-				RecvPost(&Session[iCnt]);
+
+				PRO_BEGIN(L"RecvPost(1st)");
+				RecvPost(&Session[iCnt], true);
+				PRO_END(L"RecvPost(1st)");
 
 				InterlockedIncrement64((LONG64 *)&_iSessionCount);
 				break;

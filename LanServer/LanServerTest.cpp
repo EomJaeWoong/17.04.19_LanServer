@@ -1,6 +1,7 @@
 #include <WinSock2.h>
 #include <stdio.h>
 
+#include "lib\Library.h"
 #include "MemoryPool.h"
 #include "NPacket.h"
 #include "StreamQueue.h"
@@ -15,7 +16,23 @@ CLanServerTest::~CLanServerTest(){}
 
 void CLanServerTest::OnClientJoin(SESSION_INFO *pSessionInfo, __int64 ClientID)		// Accept 후 접속처리 완료 후 호출.
 {
-	
+	///////////////////////////////////////////////////////////////
+	// Login Packet Send
+	///////////////////////////////////////////////////////////////
+	PRO_BEGIN(L"PacketAlloc");
+	CNPacket *pLoginPacket = CNPacket::Alloc();
+	PRO_END(L"PacketAlloc");
+
+	*pLoginPacket << (short)8;
+	*pLoginPacket << 0x7fffffffffffffff;
+
+	PRO_BEGIN(L"SendPacket");
+	SendPacket(ClientID, pLoginPacket);
+	PRO_END(L"SendPacket");
+
+	PRO_BEGIN(L"PacketFree");
+	pLoginPacket->Free();
+	PRO_END(L"PacketFree");
 }
 
 void CLanServerTest::OnClientLeave(__int64 ClientID)   					// Disconnect 후 호출
@@ -30,7 +47,9 @@ bool CLanServerTest::OnConnectionRequest(WCHAR *ClientIP, int Port)		// accept �
 
 void CLanServerTest::OnRecv(__int64 ClientID, CNPacket *pPacket)			// 패킷 수신 완료 후
 {
+	PRO_BEGIN(L"PacketAlloc");
 	CNPacket *pSendPacket = CNPacket::Alloc();
+	PRO_END(L"PacketAlloc");
 
 	short header;
 	__int64 iValue;
@@ -43,7 +62,10 @@ void CLanServerTest::OnRecv(__int64 ClientID, CNPacket *pPacket)			// 패킷 수신 
 	*pSendPacket << iValue;
 	//////////////////////
 
+	PRO_BEGIN(L"SendPacket");
 	SendPacket(ClientID, pSendPacket);
+	PRO_END(L"SendPacket");
+
 	InterlockedIncrement64((LONG64 *)&_SendPacketCounter);
 	pSendPacket->Free();
 }

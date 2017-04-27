@@ -112,13 +112,14 @@
 		{
 			st_BLOCK_NODE *stpBlock;
 
-			if (m_iBlockCount < m_iAllocCount)		return NULL;
-
-			else if (m_bStoreFlag && (m_iBlockCount == m_iAllocCount))
+		
+			if (m_bStoreFlag && (m_iBlockCount == m_iAllocCount))
 			{
 				stpBlock = (st_BLOCK_NODE *)new char[(sizeof(st_BLOCK_NODE) + sizeof(DATA))];
 				m_iBlockCount++;
 			}
+
+			else if (m_iBlockCount < m_iAllocCount)		return NULL;
 
 			else
 			{
@@ -128,7 +129,7 @@
 
 			m_iAllocCount++;
 
-			return (DATA *)stpBlock + 1;
+			return (DATA *)(stpBlock + 1);
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -145,6 +146,7 @@
 			stpBlock->stpNextBlock = m_stpTop;
 
 			m_stpTop = stpBlock;
+			m_iAllocCount--;
 			return false;
 		}
 

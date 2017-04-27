@@ -23,6 +23,7 @@
 #include "APIHook.h"
 #include "CrashDump.h"
 #include "SystemLog.h"
+#include "Profiler.h"
 
 using namespace Eom;
 
