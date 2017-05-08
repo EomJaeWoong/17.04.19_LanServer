@@ -30,9 +30,7 @@ void CLanServerTest::OnClientJoin(SESSION_INFO *pSessionInfo, __int64 ClientID)	
 	SendPacket(ClientID, pLoginPacket);
 	PRO_END(L"SendPacket");
 
-	PRO_BEGIN(L"PacketFree");
 	pLoginPacket->Free();
-	PRO_END(L"PacketFree");
 }
 
 void CLanServerTest::OnClientLeave(__int64 ClientID)   					// Disconnect 후 호출
@@ -66,8 +64,9 @@ void CLanServerTest::OnRecv(__int64 ClientID, CNPacket *pPacket)			// 패킷 수신 
 	SendPacket(ClientID, pSendPacket);
 	PRO_END(L"SendPacket");
 
-	InterlockedIncrement64((LONG64 *)&_SendPacketCounter);
 	pSendPacket->Free();
+
+	InterlockedIncrement64((LONG64 *)&_SendPacketCounter);
 }
 
 void CLanServerTest::OnSend(__int64 ClientID, int sendsize)				// 패킷 송신 완료 후

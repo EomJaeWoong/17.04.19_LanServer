@@ -209,24 +209,33 @@ BOOL CLanServer::SendPost(SESSION *pSession)
 	WSABUF wBuf[MAX_WSABUF];
 	CNPacket *pPacket = NULL;
 
-	while (pSession->SendQ.GetUseSize() / sizeof(char *) > iCount)
-	{
-		if (iCount >= MAX_WSABUF)
-			break;
-
-		pSession->SendQ.Peek((char *)&pPacket, iCount * sizeof(char *), sizeof(char *));
-
-		wBuf[iCount].buf = (char *)pPacket->GetHeaderBufferPtr();
-		wBuf[iCount].len = pPacket->GetPacketSize();
-	
-		iCount++;
-	}
-
 	if (pSession->_bSendFlag == TRUE)	return FALSE;
 
+	/*
+	if (0 == pSession->SendQ.GetUseSize())
+	{
+		pSession->_bSendFlag == FALSE;
+		if (0 != pSession->SendQ.GetUseSize())
+			continue;
+		break;
+	}
+	*/
 	else{
-		InterlockedIncrement64((LONG64 *)&pSession->_lIOCount);
+		while (pSession->SendQ.GetUseSize() / sizeof(char *) > iCount)
+		{
+			if (iCount >= MAX_WSABUF)
+				break;
+
+			pSession->SendQ.Peek((char *)&pPacket, iCount * sizeof(char *), sizeof(char *));
+
+			wBuf[iCount].buf = (char *)pPacket->GetHeaderBufferPtr();
+			wBuf[iCount].len = pPacket->GetPacketSize();
+
+			iCount++;
+		}
+
 		pSession->_bSendFlag = TRUE;
+		InterlockedIncrement64((LONG64 *)&pSession->_lIOCount);
 
 		PRO_BEGIN(L"WSASend Call");
 		retval = WSASend(pSession->_SessionInfo._socket, wBuf, iCount, &dwSendSize, dwflag, &pSession->_SendOverlapped, NULL);
@@ -246,8 +255,8 @@ BOOL CLanServer::SendPost(SESSION *pSession)
 				return FALSE;
 			}
 		}
-
-		pSession->_iSendCnt = iCount;
+		pSession->_iSendCnt += iCount;
+	
 	}
 
 	return TRUE;
@@ -343,7 +352,7 @@ int CLanServer::WorkerThread_Update()
 			pSession->RecvQ.MoveWritePos(dwTransferred);
 
 			PRO_BEGIN(L"PacketAlloc");
-			pPacket = CNPacket::Alloc();
+			CNPacket *pPacket = CNPacket::Alloc();
 			PRO_END(L"PacketAlloc");
 
 			while (1)
@@ -367,13 +376,14 @@ int CLanServer::WorkerThread_Update()
 		//////////////////////////////////////////////////////////////////////////////
 		else if (pOverlapped == &pSession->_SendOverlapped)
 		{
+			CNPacket *pPacket = NULL;
+
 			for (int iCnt = 0; iCnt < pSession->_iSendCnt; iCnt++)
 			{
-				CNPacket *pPacket = NULL;
 				pSession->SendQ.Get((char *)&pPacket, 8);
 				pPacket->Free();
 			}
-			
+
 			pSession->_bSendFlag = FALSE;
 			pSession->_iSendCnt = 0;
 			OnSend(pSession->_iSessionID, dwTransferred);
@@ -477,7 +487,7 @@ int CLanServer::AcceptThread_Update()
 					0);
 
 				if (!retval)
-					continue;
+					PostQueuedCompletionStatus(hIOCP, 0, 0, 0);
 				
 				InterlockedIncrement64((LONG64 *)&Session[iCnt]._lIOCount);
 				OnClientJoin(&Session[iCnt]._SessionInfo, Session[iCnt]._iSessionID);

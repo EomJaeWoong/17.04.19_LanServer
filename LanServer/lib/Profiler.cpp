@@ -176,5 +176,7 @@ bool SaveProfile()
 			88 * sizeof(WCHAR), &dwBytesWritten, NULL);
 	}
 
+	CloseHandle(hFile);
+
 	return true;
 }

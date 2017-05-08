@@ -62,6 +62,8 @@
 		//////////////////////////////////////////////////////////////////////////
 		CMemoryPool(int iBlockNum, bool bLockFlag = false)
 		{
+			st_BLOCK_NODE *pNode, *pPreNode;
+
 			////////////////////////////////////////////////////////////////
 			// 메모리 풀 크기 설정
 			////////////////////////////////////////////////////////////////
@@ -72,34 +74,37 @@
 			else if (iBlockNum == 0)
 			{
 				m_bStoreFlag = true;
-				m_stBlockHeader = NULL;
+				m_stpTop = NULL;
 			}
 
-			////////////////////////////////////////////////////////////////
-			// DATA * 개수 크기만 큼 메모리 할당
-			////////////////////////////////////////////////////////////////
-			m_stBlockHeader = new char[(sizeof(DATA) + sizeof(st_BLOCK_NODE)) * m_iBlockCount];
-
-			m_stpTop = (st_BLOCK_NODE *)m_stBlockHeader;
-			char *pBlock = (char *)m_stpTop;
-			st_BLOCK_NODE *stpNode = m_stpTop;
-
-			////////////////////////////////////////////////////////////////
-			// BLOCK 연결
-			////////////////////////////////////////////////////////////////
-			for (int iCnt = 0; iCnt < m_iBlockCount - 1; iCnt++)
+			else
 			{
-				pBlock += sizeof(DATA) + sizeof(st_BLOCK_NODE);
-				stpNode->stpNextBlock = (st_BLOCK_NODE *)pBlock;
-				stpNode = stpNode->stpNextBlock;
+				m_bStoreFlag = false;
+
+				pNode = (st_BLOCK_NODE *)malloc(sizeof(DATA) + sizeof(st_BLOCK_NODE));
+				m_stpTop = pNode;
+				pPreNode = pNode;
+
+				for (int iCnt = 1; iCnt < iBlockNum; iCnt++)
+				{
+					pNode = (st_BLOCK_NODE *)malloc(sizeof(DATA) + sizeof(st_BLOCK_NODE));
+					pPreNode->stpNextBlock = pNode;
+					pPreNode = pNode;
+				}
 			}
 
-			stpNode->stpNextBlock = NULL;
+			InitializeSRWLock(&srwMemLock);
 		}
 
 		virtual	~CMemoryPool()
 		{
-			delete []m_stBlockHeader;
+			st_BLOCK_NODE *pNode;
+			for (int iCnt = 0; iCnt < m_iBlockCount; iCnt++)
+			{
+				pNode = m_stpTop;
+				m_stpTop = m_stpTop->stpNextBlock;
+				free(pNode);
+			}
 		}
 
 		//////////////////////////////////////////////////////////////////////////
@@ -111,23 +116,25 @@
 		DATA	*Alloc(bool bPlacementNew = true)
 		{
 			st_BLOCK_NODE *stpBlock;
-
+			int iBlockCount = m_iBlockCount;
+			InterlockedIncrement64((LONG64 *)&m_iAllocCount);
 		
-			if (m_bStoreFlag && (m_iBlockCount == m_iAllocCount))
+			if (iBlockCount < m_iAllocCount)
 			{
-				stpBlock = (st_BLOCK_NODE *)new char[(sizeof(st_BLOCK_NODE) + sizeof(DATA))];
-				m_iBlockCount++;
-			}
+				if (m_bStoreFlag)
+				{
+					stpBlock = (st_BLOCK_NODE *)malloc(sizeof(DATA) + sizeof(st_BLOCK_NODE));
+					InterlockedIncrement64((LONG64 *)&m_iBlockCount);
+				}
 
-			else if (m_iBlockCount < m_iAllocCount)		return NULL;
+				else		return nullptr;
+			}
 
 			else
 			{
 				stpBlock = m_stpTop;
 				m_stpTop = stpBlock->stpNextBlock;
 			}
-
-			m_iAllocCount++;
 
 			return (DATA *)(stpBlock + 1);
 		}
@@ -146,7 +153,7 @@
 			stpBlock->stpNextBlock = m_stpTop;
 
 			m_stpTop = stpBlock;
-			m_iAllocCount--;
+			InterlockedDecrement64((LONG64 *)&m_iAllocCount);
 			return false;
 		}
 
@@ -159,16 +166,22 @@
 		//////////////////////////////////////////////////////////////////////////
 		int		GetAllocCount(void) { return m_iAllocCount; }
 
+
+		void		Lock()
+		{
+			AcquireSRWLockExclusive(&srwMemLock);
+		}
+
+		void		Unlock()
+		{
+			ReleaseSRWLockExclusive(&srwMemLock);
+		}
+
 	private:
 		//////////////////////////////////////////////////////////////////////////
 		// 블록 스택의 탑
 		//////////////////////////////////////////////////////////////////////////
 		st_BLOCK_NODE *m_stpTop;
-
-		//////////////////////////////////////////////////////////////////////////
-		// 노드 구조체 헤더
-		//////////////////////////////////////////////////////////////////////////
-		char *m_stBlockHeader;
 
 		//////////////////////////////////////////////////////////////////////////
 		// 메모리 Lock 플래그
@@ -189,6 +202,11 @@
 		// 전체 블럭 개수
 		//////////////////////////////////////////////////////////////////////////
 		int m_iBlockCount;
+
+		//////////////////////////////////////////////////////////////////////////
+		// SRWLOCK
+		//////////////////////////////////////////////////////////////////////////
+		SRWLOCK srwMemLock;
 	};
 
 #endif
