@@ -100,6 +100,12 @@ private :
 	bool CompleteRecv(SESSION *pSession, CNPacket *pPacket);
 	bool CompleteSend(SESSION *pSession);
 
+	//---------------------------------------------------------------------------------
+	// Session Index 관련 함수
+	//---------------------------------------------------------------------------------
+	int GetBlankSessionIndex();
+	void InsertBlankSessionIndex(int iSessionIndex);
+
 	void DisconnectSession(SOCKET socket);
 	void DisconnectSession(SESSION *pSession);
 	void DisconnectSession(__int64 iSessionID);
@@ -150,6 +156,5 @@ protected:
 
 	bool _bNagle;
 };
-
 
 #endif
