@@ -343,47 +343,54 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	void Unlock();
 
+	//////////////////////////////////////////////////////////////////////////
+	// 패킷 메모리풀 할당 갯수.
+	//
+	// Parameters: 없음.
+	// Return: 패킷 할당 수.
+	static int GetPacketPoolCount(){ return _pPacketPool.GetAllocCount(); }
+
 protected:
 	//------------------------------------------------------------
 	// 패킷 메모리 풀
 	//------------------------------------------------------------
-	static CMemoryPool<CNPacket> _pPacketPool;
+	static CMemoryPool<CNPacket>	_pPacketPool;
 
 	//------------------------------------------------------------
 	// 할당 카운트
 	//------------------------------------------------------------
-	int _iRefCnt;
+	int								_iRefCnt;
 
 	//------------------------------------------------------------
 	// 패킷버퍼 / 버퍼 사이즈.
 	//------------------------------------------------------------
-	unsigned char		*m_chpBufferExpansion;
+	unsigned char					*m_chpBufferExpansion;
 
-	unsigned char		*m_chpBuffer;
-	int				m_iBufferSize;
+	unsigned char					*m_chpBuffer;
+	int								m_iBufferSize;
 	//------------------------------------------------------------
 	// 패킷버퍼 시작 위치.	(본 클래스 에서는 사용하지 않지만, 확장성을 위해 사용)
 	//------------------------------------------------------------
-	unsigned char		*m_chpDataFieldStart;
-	unsigned char		*m_chpDataFieldEnd;
+	unsigned char					*m_chpDataFieldStart;
+	unsigned char					*m_chpDataFieldEnd;
 
 
 	//------------------------------------------------------------
 	// 버퍼의 읽을 위치, 넣을 위치.
 	//------------------------------------------------------------
-	mutable unsigned char	*m_chpReadPos;
-	mutable unsigned char	*m_chpWritePos;
+	mutable unsigned char			*m_chpReadPos;
+	mutable unsigned char			*m_chpWritePos;
 
 
 	//------------------------------------------------------------
 	// 현재 버퍼에 사용중인 사이즈.
 	//------------------------------------------------------------
-	mutable int		m_iDataSize;
+	mutable int						m_iDataSize;
 
 	//------------------------------------------------------------
 	// SRWLock
 	//------------------------------------------------------------
-	SRWLOCK			srwPacketLock;
+	SRWLOCK							srwPacketLock;
 };
 
 #endif

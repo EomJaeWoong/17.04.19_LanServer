@@ -209,19 +209,44 @@ BOOL CLanServer::SendPost(SESSION *pSession)
 	WSABUF wBuf[MAX_WSABUF];
 	CNPacket *pPacket = NULL;
 
-	if (pSession->_bSendFlag == TRUE)	return FALSE;
+	int SendQReadPos = 0;
+	int SendQWritePos = 0;
+	int SendQUseSize = 0;
 
-	/*
-	if (0 == pSession->SendQ.GetUseSize())
+	if (true == InterlockedCompareExchange((LONG *)&pSession->_bSendFlag, (LONG)true, (LONG)true))
+		return FALSE;
+
+	do
 	{
-		pSession->_bSendFlag == FALSE;
-		if (0 != pSession->SendQ.GetUseSize())
-			continue;
-		break;
-	}
-	*/
-	else{
-		while (pSession->SendQ.GetUseSize() / sizeof(char *) > iCount)
+		////////////////////////////////////////////////////////////////////////////////
+		// SendFlag -> true
+		////////////////////////////////////////////////////////////////////////////////
+		InterlockedCompareExchange((LONG *)&pSession->_bSendFlag, (LONG)true, (LONG)false);
+
+		////////////////////////////////////////////////////////////////////////////////
+		// 세션의 SendQ Read, Write, size 계산
+		////////////////////////////////////////////////////////////////////////////////
+		SendQReadPos = pSession->SendQ.GetReadBufferPtr() - pSession->SendQ.GetBufferPtr();
+		SendQWritePos = pSession->SendQ.GetWriteBufferPtr() - pSession->SendQ.GetBufferPtr();
+		if (SendQReadPos > SendQWritePos)
+			SendQUseSize = pSession->SendQ.GetBufferSize() - SendQReadPos + SendQWritePos;
+		else
+			SendQUseSize = SendQWritePos - SendQReadPos;
+
+		if (SendQUseSize == 0)
+		{
+			////////////////////////////////////////////////////////////////////////////////
+			// SendFlag -> false
+			////////////////////////////////////////////////////////////////////////////////
+			InterlockedCompareExchange((LONG *)&pSession->_bSendFlag, (LONG)false, (LONG)true);
+			if (pSession->SendQ.GetUseSize() > 0)
+				continue;
+		}
+
+		////////////////////////////////////////////////////////////////////////////////
+		// WSABUF에 Packet 넣기
+		////////////////////////////////////////////////////////////////////////////////
+		while (SendQUseSize / sizeof(char *) > iCount)
 		{
 			if (iCount >= MAX_WSABUF)
 				break;
@@ -234,7 +259,6 @@ BOOL CLanServer::SendPost(SESSION *pSession)
 			iCount++;
 		}
 
-		pSession->_bSendFlag = TRUE;
 		InterlockedIncrement64((LONG64 *)&pSession->_lIOCount);
 
 		PRO_BEGIN(L"WSASend Call");
@@ -255,10 +279,9 @@ BOOL CLanServer::SendPost(SESSION *pSession)
 				return FALSE;
 			}
 		}
-		pSession->_iSendCnt += iCount;
-	
-	}
 
+		pSession->_iSendCnt += iCount;
+	} while (0);
 	return TRUE;
 }
 
@@ -380,11 +403,11 @@ int CLanServer::WorkerThread_Update()
 
 			for (int iCnt = 0; iCnt < pSession->_iSendCnt; iCnt++)
 			{
-				pSession->SendQ.Get((char *)&pPacket, 8);
+				pSession->SendQ.Get((char *)&pPacket, sizeof(char *));
 				pPacket->Free();
 			}
 
-			pSession->_bSendFlag = FALSE;
+			InterlockedCompareExchange((LONG *)&pSession->_bSendFlag, (LONG)false, (LONG)true);
 			pSession->_iSendCnt = 0;
 			OnSend(pSession->_iSessionID, dwTransferred);
 
@@ -473,7 +496,7 @@ int CLanServer::AcceptThread_Update()
 				Session[iCnt]._iSessionID = InterlockedIncrement64((LONG64 *)&_iSessionID);
 
 				Session[iCnt].RecvQ.ClearBuffer();
-				Session[iCnt].SendQ.ClearBuffer();
+				//Session[iCnt].SendQ.ClearBuffer();
 
 				memset(&(Session[iCnt]._RecvOverlapped), 0, sizeof(OVERLAPPED));
 				memset(&(Session[iCnt]._SendOverlapped), 0, sizeof(OVERLAPPED));
@@ -518,6 +541,7 @@ int CLanServer::MonitorThread_Update()
 		_AcceptTotalTPS += _AcceptTotalCounter;
 		_RecvPacketTPS = _RecvPacketCounter;
 		_SendPacketTPS = _SendPacketCounter;
+		_PacketPoolTPS = CNPacket::GetPacketPoolCount();
 
 		_AcceptCounter = 0;
 		_AcceptTotalCounter = 0;

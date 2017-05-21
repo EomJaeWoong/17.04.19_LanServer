@@ -389,7 +389,7 @@ void CNPacket::Free()
 		_pPacketPool.Free(this);
 	}
 
-	if (retval < 0)
+	else if (retval < 0)
 		CCrashDump::Crash();
 }
 

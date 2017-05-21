@@ -1,6 +1,18 @@
 #ifndef __LANSERVER__H__
 #define __LANSERVER__H__
 
+enum
+{
+	// 최대 쓰레드 수
+	MAX_THREAD = 50,
+
+	// 최대 접속자 수
+	MAX_SESSION = 200,
+
+	// WSABUF 갯수
+	MAX_WSABUF = 100
+};
+
 //-------------------------------------------------------------------------------------
 // 세션 정보 구조체
 //-------------------------------------------------------------------------------------
@@ -38,17 +50,6 @@ typedef struct stSESSION
 
 class CLanServer
 {
-	enum
-	{
-		// 최대 쓰레드 수
-		MAX_THREAD = 50,
-
-		// 최대 접속자 수
-		MAX_SESSION = 200,
-
-		// WSABUF 갯수
-		MAX_WSABUF = 100
-	};
 public :
 	CLanServer();
 	virtual ~CLanServer();
@@ -126,7 +127,7 @@ public:
 	int _AcceptTotalTPS;
 	int _RecvPacketTPS;
 	int _SendPacketTPS;
-
+	int _PacketPoolTPS;
 	int _iSessionCount;
 
 protected:

@@ -19,6 +19,7 @@ void CLanServerTest::OnClientJoin(SESSION_INFO *pSessionInfo, __int64 ClientID)	
 	///////////////////////////////////////////////////////////////
 	// Login Packet Send
 	///////////////////////////////////////////////////////////////
+	/*
 	PRO_BEGIN(L"PacketAlloc");
 	CNPacket *pLoginPacket = CNPacket::Alloc();
 	PRO_END(L"PacketAlloc");
@@ -31,6 +32,7 @@ void CLanServerTest::OnClientJoin(SESSION_INFO *pSessionInfo, __int64 ClientID)	
 	PRO_END(L"SendPacket");
 
 	pLoginPacket->Free();
+	*/
 }
 
 void CLanServerTest::OnClientLeave(__int64 ClientID)   					// Disconnect ÈÄ È£Ãâ
