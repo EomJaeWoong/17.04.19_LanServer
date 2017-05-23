@@ -48,7 +48,9 @@ bool CLanServerTest::OnConnectionRequest(WCHAR *ClientIP, int Port)		// accept �
 void CLanServerTest::OnRecv(__int64 ClientID, CNPacket *pPacket)			// 패킷 수신 완료 후
 {
 	PRO_BEGIN(L"PacketAlloc");
-	CNPacket *pSendPacket = CNPacket::Alloc();
+	//CNPacket *pSendPacket = CNPacket::Alloc();
+	CNPacket *pSendPacket = new CNPacket();
+
 	PRO_END(L"PacketAlloc");
 
 	short header;
@@ -62,11 +64,17 @@ void CLanServerTest::OnRecv(__int64 ClientID, CNPacket *pPacket)			// 패킷 수신 
 	*pSendPacket << iValue;
 	//////////////////////
 
+	pSendPacket->iUsedSession = ClientID;
+	pSendPacket->bUse = true;
+	pSendPacket->iStatus = 2;
+	pSendPacket->iAddress = (__int64)pPacket;
+
 	PRO_BEGIN(L"SendPacket");
 	SendPacket(ClientID, pSendPacket);
 	PRO_END(L"SendPacket");
 
-	pSendPacket->Free();
+	//pSendPacket->Free();
+	//delete pSendPacket;
 
 	InterlockedIncrement64((LONG64 *)&_SendPacketCounter);
 }

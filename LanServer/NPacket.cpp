@@ -78,6 +78,11 @@ void	CNPacket::Initial(int iBufferSize)
 	m_iDataSize = 0;
 
 	_iRefCnt = 0;
+
+	iUsedSession = 0;
+
+	iAddress = 0;
+	bUse = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
